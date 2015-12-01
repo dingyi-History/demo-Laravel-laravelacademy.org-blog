@@ -1,0 +1,353 @@
+# 基于Laravel开发博客应用系列 —— 构建博客后台管理系统
+> 源自laravel学院:http://laravelacademy.org/post/2279.html
+
+一个完整的博客应用不能没有后台管理系统。所以在本节中我们将继续完善博客应用 —— 开发后台管理系统。
+
+1、创建路由
+在上一节十分钟创建博客项目中，已经设置过了 app/Http/routes.php，现在，我们要添加后台路由到该文件。
+
+为什么要使用路由？
+
+Laravel 5.1 一种机制用来建立 web 请求与处理 web 请求的代码之间的关系，这种机制被称作路由。本项目中所有路由都定义在 app/Http/routes.php 文件中。
+
+只要 web 请求路径在 public 目录下找不到，Laravel 5.1 就会从路由文件查找对应关系并返回响应。
+
+修改 app/Http/routes.php 内容如下：
+
+<?php
+
+// Blog pages
+get('/', function () {
+    return redirect('/blog');
+});
+get('blog', 'BlogController@index');
+get('blog/{slug}', 'BlogController@showPost');
+
+// Admin area
+get('admin', function () {
+    return redirect('/admin/post');
+});
+$router->group(['namespace' => 'Admin', 'middleware' => 'auth'], function () {
+    resource('admin/post', 'PostController');
+    resource('admin/tag', 'TagController');
+    get('admin/upload', 'UploadController@index');
+});
+
+// Logging in and out
+get('/auth/login', 'Auth\AuthController@getLogin');
+post('/auth/login', 'Auth\AuthController@postLogin');
+get('/auth/logout', 'Auth\AuthController@getLogout');
+保存好 routes.php 后，下一步我们要创建对应的控制器。
+
+2、创建后台控制器
+使用 Artisan 命令生成控制器：
+
+php artisan make:controller Admin\\PostController
+php artisan make:controller Admin\\TagController
+php artisan make:controller Admin\\UploadController --plain
+上述三个命令运行完成后，会在 app/Http/Controllers/Admin 目录下生成三个控制器。
+
+修改 PostController 类的 index() 方法如下：
+
+ /**
+  * Display a listing of the posts.
+  *
+  * @return Response
+  */
+public function index()
+{
+    return view('admin.post.index');
+}
+现在 index() 方法只是简单渲染视图，稍后我们会完善它。
+
+3、创建视图
+我们还需要创建一些视图，一步步来好了。
+
+创建后台布局
+
+Blade 模板引擎是 Laravel 提供的最强大的功能之一，接下来我们将基于 Blade 创建一个供后台使用的布局文件，从而让后台有一个整体外观一致的视觉体验。
+
+在 resources/views 目录下新建一个 admin 目录，然后在该目录下创建一个 layout.blade.php 文件并编辑其内容如下：
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>{{ config('blog.title') }} Admin</title>
+
+        <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+        @yield('styles')
+
+        <!--[if lt IE 9]>
+            <script src="//oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+            <script src="//oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+
+        {{-- Navigation Bar --}}
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-menu">
+                        <span class="sr-only">Toggle Navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">{{ config('blog.title') }} Admin</a>
+                </div>
+                <div class="collapse navbar-collapse" id="navbar-menu">
+                    @include('admin.partials.navbar')
+                </div>
+           </div>
+        </nav>
+
+        @yield('content')
+
+        <script src="http://libs.baidu.com/jquery/1.9.1/jquery.min.js"></script>
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+        @yield('scripts')
+
+    </body>
+</html>
+上面的代码片段可能看上去很熟悉，没错，这就是 Bootstrap 的基本模板，我们只是在其基础上加了一些额外的钩子：
+
+<title>{{ config('blog.title') }} Admin</title> ： 设置站点标题
+@yield('styles')：该 Blade 指令将会输出继承自该布局的子视图的 styles 区块内容（如果有的话），其目的在于将 CSS 样式文件放到模板顶部。
+@include('admin.partials.navbar')：这里我们引入另一个 Blade 模板（现在还不存在）
+@yield('content')：输出页面的主体内容
+@yield('scripts')：输出额外的 JavaScript 脚本文件
+创建导航条局部视图
+
+在 resources/views/admin 目录下新建 partials 目录，并在该目录下创建 navbar.blade.php 文件，编辑其内容如下：
+
+<ul class="nav navbar-nav">
+    <li><a href="/">Blog Home</a></li>
+    @if (Auth::check())
+        <li @if (Request::is('admin/post*')) class="active" @endif>
+            <a href="/admin/post">Posts</a>
+        </li>
+        <li @if (Request::is('admin/tag*')) class="active" @endif>
+            <a href="/admin/tag">Tags</a>
+        </li>
+        <li @if (Request::is('admin/upload*')) class="active" @endif>
+            <a href="/admin/upload">Uploads</a>
+        </li>
+    @endif
+</ul>
+
+<ul class="nav navbar-nav navbar-right">
+    @if (Auth::guest())
+        <li><a href="/auth/login">Login</a></li>
+    @else
+        <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                    aria-expanded="false">
+                {{ Auth::user()->name }}
+                <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+                <li><a href="/auth/logout">Logout</a></li>
+            </ul>
+        </li>
+    @endif
+</ul>
+如果用户登录进来，该模板会显示一个顶部导航条：左侧包含 Posts、Tags 和 Uploads，右侧包含 Logout。
+
+如果用户没有登录，只在导航条右侧显示 Login 链接。
+
+创建登录表单
+
+现在我们已经有了后台布局视图，创建登录表单不要太简单，首先在 resources/views 目录下新建 auth 目录，并在该目录下创建  login.blade.php 文件，编辑该文件内容如下：
+
+@extends('admin.layout')
+
+@section('content')
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <div class="panel panel-default">
+                <div class="panel-heading">Login</div>
+                <div class="panel-body">
+
+                    @include('admin.partials.errors')
+
+                    <form class="form-horizontal" role="form" method="POST"
+                            action="{{ url('/auth/login') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+
+                        <div class="form-group">
+                            <label class="col-md-4 control-label">E-Mail Address</label>
+                            <div class="col-md-6">
+                            <input type="email" class="form-control" name="email" value="{{ old('email') }}" autofocus>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-md-4 control-label">Password</label>
+                            <div class="col-md-6">
+                            <input type="password" class="form-control" name="password">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="col-md-6 col-md-offset-4">
+                                <div class="checkbox">
+                                    <label>
+                                    <input type="checkbox" name="remember"> Remember Me
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="col-md-6 col-md-offset-4">
+                            <button type="submit" class="btn btn-primary">Login</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+在登录表单中我们引入了一个尚未创建的 admin.partials.errors，接下来就来创建该视图：
+
+创建错误局部视图
+
+验证表单输入错误并在视图中显示这些错误在处理表单时是一个通用任务，所以我们将其放到一个单独的 Blade 模板视图中进行处理。
+
+在 resources/views/admin/partials 目录下创建 errors.blade.php，编辑其内容如下：
+
+@if (count($errors) > 0)
+    <div class="alert alert-danger">
+        <strong>Whoops!</strong>
+        There were some problems with your input.<br><br>
+        <ul>
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+        </ul>
+    </div>
+@endif
+$errors 变量在每个视图中都有效，其中包含了一个错误集合（如果有错误的话），我们只需要检查是否包含错误并将错误显示出来即可。
+
+创建文章列表视图
+
+在 resources/views/admin 目录下创建一个新的目录 post，并在该目录下新建 index.blade.php，编辑该文件内容如下：
+
+@extends('admin.layout')
+
+@section('content')
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Posts</h3>
+                    </div>
+                    <div class="panel-body">
+
+                        TODO
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@stop
+这只是一个临时视图，后面我们会逐步完善它。
+
+4、测试登录/退出
+在浏览器中访问 http://blog.app/admin，回跳转到登录页面，页面显示如下：
+
+Laravel博客后台登录页面
+
+你可以试着登录，当然你不可能登录成功，因为我们还没有创建后台用户。
+
+创建后台用户
+
+artisan tinker 可以用于通过命令行与应用进行交互，下面我们在 Homestead 虚拟机中项目根目录下使用该命令为博客项目创建后台用户：
+
+使用 artisan tinker 为 Laravel 博客创建后台用户
+
+现在我们就可以使用刚刚创建的用户登录后台了。回到登录页试试吧。
+
+登录成功后页面跳转到文章列表页：
+
+Laravel 博客后台文章列表页
+
+修改退出后跳转 URL
+
+如果点击页面顶部导航条右侧的下拉列表并选择 Logout 退出，你会发现页面没有跳转到登录页面，而是博客页面。
+
+为什么会这样？
+
+如果查看 AuthController 类（app/Http/Controllers/Auth/AuthController）的 getLogout() 方法，你会发现并没有该方法，在其父类中也没有 getLogout() 方法，这是因为 AuthController 使用了 AuthenticatesAndRegistersUsers trait 和  AuthenticatesUsers trait，getLogout() 方法正是定义在了 AuthenticateUsers trait 中。
+
+如果你在 vendor/laravel/framework/src 目录下找到 Illuminate/Foundation/Auth 目录，你会发现该目录下有一个 AuthenticatesUsers.php，在该文件中，可以看到 getLogout() 方法，并且该方法在退出完成后重定向到了根路径 / 。
+
+要修改该重定向路径，修改 app/Http/Controllers/Auth/AuthController 代码如下：
+
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\User;
+use Validator;
+use App\Http\Controllers\Controller;
+use Illuminate\Foundation\Auth\ThrottlesLogins;
+use Illuminate\Foundation\Auth\AuthenticatesUsers;
+
+class AuthController extends Controller
+{
+    use AuthenticatesUsers, ThrottlesLogins;
+
+    protected $redirectAfterLogout = '/auth/login';
+    protected $redirectTo = '/admin/post';
+
+    /**
+     * Create a new authentication controller instance.
+     */
+    public function __construct()
+    {
+        $this->middleware('guest', ['except' => 'getLogout']);
+    }
+
+    /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param array $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function validator(array $data)
+    {
+        return Validator::make($data, [
+            'name' => 'required|max:255',
+            'email' => 'required|email|max:255|unique:users',
+            'password' => 'required|confirmed|min:6',
+        ]);
+    }
+}
+我们移除了 AuthenticateAndRegistersUsers trait，因为我们的应用不允许普通用户注册。然后我们设置了  $redirectAfterLogout 属性和 $redirectTo 属性，用来指定登录和退出后的重定向 URL。
+
+该类的其余部分和之前一样保持不变。
+
+修改登录后跳转 URL
+
+默认登录成功后跳转链接是 /home，和退出一样，我们可以修改该URL。
+
+编辑 app/Http/Middleware/RedirectIfAuthenticated.php 文件，修改第38行代码如下：
+
+return new RedirectResponse('/admin/post');
+登录/退出
+
+由于现在我们已经将 getLogout() 方法的跳转链接做了修改，现在我们已经可以成功实现登录/退出了。
+
+试试吧。
