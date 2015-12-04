@@ -37,3 +37,5 @@
 * 5.[使用Bower+Gulp集成前端资源](http://laravelacademy.org/post/2299.html)
 
 * 6.[在后台实现文章标签增删改查功能](http://laravelacademy.org/post/2320.html)
+
+* 7.[实现文件上传管理功能](http://laravelacademy.org/post/2333.html)
