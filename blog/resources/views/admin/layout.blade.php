@@ -7,7 +7,7 @@
 
     <title>{{ config('blog.title') }} Admin</title>
 
-    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/css/admin.css" rel="stylesheet">
     @yield('styles')
 
         <!--[if lt IE 9]>
@@ -17,7 +17,6 @@
 </head>
 <body>
 
-{{-- Navigation Bar --}}
 <nav class="navbar navbar-default">
     <div class="container-fluid">
         <div class="navbar-header">
@@ -37,8 +36,7 @@
 
 @yield('content')
 
-<script src="http://libs.baidu.com/jquery/1.9.1/jquery.min.js"></script>
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script src="/assets/js/admin.js"></script>
 
 @yield('scripts')
 

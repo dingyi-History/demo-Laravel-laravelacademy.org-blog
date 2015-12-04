@@ -1,0 +1,18 @@
+{
+  "name": "blog",
+  "description": "My awesome blog",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "vendor/bower_dl",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.4",
+    "bootstrap": "~3.3.6",
+    "font-awesome": "fontawesome#~4.5.0",
+    "datatables": "~1.10.10",
+    "datatables-plugins": "~1.10.10"
+  }
+}
