@@ -31,3 +31,7 @@
   ```
   return new RedirectResponse('/admin/post');
   ```
+
+  * 要点4.就是Laravel中实现某个内置功能一般而言有三种实现方式：门面、依赖注入和辅助函数。这里Route对应门面、$router对应依赖注入实例、get对应辅助函数，门面本质上对应的也是依赖注入的实例类，所以Route和$router除了写法不一样，本质上完全一致；辅助函数实际上调用的也是实例类上的方法，只是写法更加简便，此外除了group之外，其他路由方法都对应有辅助函数，具体可以去Illuminate/Foundation目录下查看helpers.php中的函数。
+
+* 5.[使用Bower+Gulp集成前端资源](http://laravelacademy.org/post/2299.html)
