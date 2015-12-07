@@ -39,3 +39,7 @@
 * 6.[在后台实现文章标签增删改查功能](http://laravelacademy.org/post/2320.html)
 
 * 7.[实现文件上传管理功能](http://laravelacademy.org/post/2333.html)
+
+* 8.[后台文章增删改查功能实现支持Markdown](http://laravelacademy.org/post/2358.html)
+
+* 9.[前台功能优化：给博客换上漂亮的主题 & 完善博客功能](http://laravelacademy.org/post/2371.html)
